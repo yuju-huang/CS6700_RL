@@ -55,7 +55,7 @@ class Xapian:
 
     # ----- Internal implementation -----
     def __startServer(self):
-        arg = "-it -p 3366:3366 --entrypoint /TailBench/xapian/run_server.sh tailbench 8"
+        arg = "-it -p 3366:3366 --entrypoint /TailBench/xapian/run_server.sh yh885/tailbench 8"
         DockerEngine.run(arg, self.server_name)
         time.sleep(3)
         DockerEngine.setCPUShare(self.server_name, self.cpu_share)
