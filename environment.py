@@ -22,23 +22,25 @@ class Environment:
         state = self.actor.getState()
         print(state.cpu_util)
         print(state.lats)
+        return state
 
     def step(self, action):
         # Do action
+        self.actor.doAction(action)
 
         # Collect new state
+        state = self.getState()
 
         # Calculate reward using performance QoS and resource utlization
-
-        return Reward(0), State(0, 500)
+        return self.reward(state), state
 
     def reward(self, state):
-        return rewardImpl(state, self.actor.getMaxCPUShare())
+        return Environment.rewardImpl(state, self.actor.getMaxCPUShare())
 
     def rewardImpl(state, max_cpu):
         r = 0
         if (state.p99_lat() > Environment.p99_qos):
-            r += (-1) * Environment.lat_weight
+            r += (-1) * Environment.lat_weight * (state.p99_lat() / Environment.p99_qos)
         else:
             r += 1 * Environment.lat_weight
 
@@ -46,12 +48,38 @@ class Environment:
         r += (1 - cpu_util) * Environment.util_weight
         return r
 
+def dump(reward, state):
+    print("state=" + str(state))
+    print("reward=" + str(reward))
+
 def test():
     e = Environment(Xapian())
     e.start()
     while True:
-        time.sleep(0.01)
-        e.getState()
+        r, s = e.step(Action.SCALE_UP)
+        dump(r, s)
+        time.sleep(1)
+        r, s = e.step(Action.SCALE_UP)
+        dump(r, s)
+        time.sleep(1)
+        r, s = e.step(Action.SCALE_UP)
+        dump(r, s)
+        time.sleep(1)
+        r, s = e.step(Action.SCALE_UP)
+        dump(r, s)
+        time.sleep(1)
+        r, s = e.step(Action.SCALE_DOWN)
+        dump(r, s)
+        time.sleep(1)
+        r, s = e.step(Action.SCALE_DOWN)
+        dump(r, s)
+        time.sleep(1)
+        r, s = e.step(Action.SCALE_DOWN)
+        dump(r, s)
+        time.sleep(1)
+        r, s = e.step(Action.SCALE_DOWN)
+        dump(r, s)
+        time.sleep(1)
 
 def test_reward():
     s1 = State("500%", [5, 5, 5])
@@ -64,5 +92,5 @@ def test_reward():
     assert (r2 == (-1 * Environment.lat_weight) + Environment.util_weight * float(6/8))
 
 if __name__ == "__main__":
-    #test()
-    test_reward()
+    test()
+    #test_reward()

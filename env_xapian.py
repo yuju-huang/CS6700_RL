@@ -12,6 +12,7 @@ from rl import Action
 class Xapian:
     min_cpu_share = 1
     max_cpu_share = 8
+    num_lats = 3
     scale_factor = 2
     mq_path = "/tmp"
     mq_prj_id = 2333
@@ -33,6 +34,7 @@ class Xapian:
     def getState(self):
         cpuUtil = DockerEngine.getCPUUtil(self.server_name)
         lats = self.__get_lats()
+        assert (len(lats) == self.num_lats)
         return State(cpuUtil, lats)
 
     def doAction(self, action):
