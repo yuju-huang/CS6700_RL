@@ -21,15 +21,17 @@ class Xapian:
     mq_cmd_put_lat = 2
     mq_cmd_finish = 1
     get_util_interval = 0.3
-    workload_file = "/home/yh885/TailBench/xapian/workload_10s.dec"
+    default_workload_file = "/home/yh885/TailBench/xapian/workload_10s.dec"
 
-    def __init__(self):
+    def __init__(self, workload_path=default_workload_file):
         # -- Container info
         self.server_name = ""
         self.cpu_share = 1
         # -- Message queue info
         self.mq_key = None
         self.mq = None
+        self.num_cpus = os.cpu_count()
+        self.workload_file = workload_path
 
     def start(self):
         self.__startServer()
@@ -58,8 +60,8 @@ class Xapian:
         # cpu_util's format like 635.76% 
         #cpuUtil = float(c.strip('%')) / 100
 
-        # format like 6.2
-        cpuUtil = psutil.cpu_percent(Xapian.get_util_interval)
+        # Format like 6.2, which is a util for all cpus so need to scale it by num_cpus
+        cpuUtil = float(psutil.cpu_percent(Xapian.get_util_interval) * self.num_cpus) / 100
         lats = self.__get_lats()
         if (lats == None):
             return None
@@ -96,7 +98,7 @@ class Xapian:
         print("done start server")
 
     def __startClient(self):
-        cmd = "/home/yh885/TailBench/xapian/run_client.sh 10000 8 1 " + Xapian.workload_file + " > client.log 2>&1"
+        cmd = "/home/yh885/TailBench/xapian/run_client.sh 10000 8 1 " + self.workload_file + " > client.log 2>&1"
         self.__shell_run(cmd)
         self.mq_key = ipc.ftok(self.mq_path, self.mq_prj_id)
         self.mq = ipc.MessageQueue(self.mq_key, ipc.IPC_CREAT)

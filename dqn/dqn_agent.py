@@ -17,9 +17,13 @@ class DqnAgent:
     Gamma = 0.95
     LearningRate = 0.001
 
-    def __init__(self):
-        self.q_net = self._build_dqn_model()
-        self.target_q_net = self._build_dqn_model()
+    def __init__(self, location=None):
+        if location is None:
+            self.q_net = self._build_dqn_model()
+            self.target_q_net = self._build_dqn_model()
+        else:
+            self.q_net = self._build_dqn_model()
+            self.target_q_net = None
 
     @staticmethod
     def _build_dqn_model():
@@ -48,10 +52,7 @@ class DqnAgent:
         :param state: not used
         :return: action
         """
-        a = Action.random()
-        print("random_action=", a)
-        return a
-#        return np.random.randint(0, 2)
+        return Action.random()
 
     def collect_policy(self, state):
         """
@@ -109,8 +110,10 @@ class DqnAgent:
         loss = training_history.history['loss']
         return loss
 
-    def save_model(self):
-        tf.saved_model.save(self.q_net, self.model_location)
+    def save_model(self, location):
+        print("Start save model to ", location)
+        tf.saved_model.save(self.q_net, location)
+        print("Done save model to ", location)
   
-    def load_model(self):
-        self.q_net = tf.saved_model.load(self.model_location)
+    def load_model(self, location):
+        self.q_net = tf.saved_model.load(location)

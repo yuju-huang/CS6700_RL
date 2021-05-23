@@ -5,7 +5,7 @@ This module trains the DQN agent by trial and error. In this module the DQN
 agent will play the game episode by episode, store the gameplay experiences
 and then use the saved gameplay experiences to train the underlying model.
 """
-import gym
+import sys
 from dqn_agent import DqnAgent
 from replay_buffer import ReplayBuffer
 import tensorflow as tf
@@ -16,6 +16,7 @@ from rl import Action
 
 tf.enable_eager_execution()
 
+UPDATE_TARGET_NET_FREQ = 5
 def evaluate_training_result(env, agent):
     """
     Evaluates the performance of the current DQN agent by using it to play a
@@ -36,13 +37,12 @@ def evaluate_training_result(env, agent):
         while not done:
             action = agent.policy(state)
             next_state, reward, done, _ = env.step(action)
-            print("evaluate_training_result state=", state, ", action=", action, ", done=", done)
+            print("evaluate_training_result state=", state, ", reward=", reward, ", action=", action, ", done=", done)
             episode_reward += reward
             state = next_state
         total_reward += episode_reward
     average_reward = total_reward / episodes_to_play
     return average_reward
-
 
 def collect_gameplay_experiences(env, agent, buffer):
     """
@@ -61,12 +61,30 @@ def collect_gameplay_experiences(env, agent, buffer):
         next_state, reward, done, _ = env.step(action)
         if done:
             reward = -1.0
-        print("collect_gameplay_experiences state=", state, ", action=", action, ", done=", done)
+        print("collect_gameplay_experiences state=", state, ", reward=", reward, ", action=", action, ", done=", done)
         buffer.store_gameplay_experience(state, next_state,
                                          reward, action, done)
         state = next_state
 
-def train_model(max_episodes=50000):
+class FinishAgent:
+    AcceptLoss = 2
+    FinishThreshold = 5
+
+    def __init__(self):
+        self.loss_list = []
+
+    def check(self, loss):
+        if loss <= FinishAgent.AcceptLoss:
+            self.loss_list.append(loss)
+            if len(self.loss_list) == FinishAgent.FinishThreshold:
+                self.loss_list = []
+                return True
+        else:
+            self.loss_list = []
+
+        return False
+
+def train_model(max_episodes, out_model_path):
     """
     Trains a DQN agent to play the CartPole game by trial and error
 
@@ -75,6 +93,7 @@ def train_model(max_episodes=50000):
     agent = DqnAgent()
     buffer = ReplayBuffer()
     env = Environment(Xapian())
+    finish = FinishAgent()
 #    for _ in range(100):
 #        collect_gameplay_experiences(env, agent, buffer)
     for episode_cnt in range(max_episodes):
@@ -86,10 +105,19 @@ def train_model(max_episodes=50000):
         print('Episode {0}/{1} and so far the performance is {2} and '
               'loss is {3}'.format(episode_cnt, max_episodes,
                                    avg_reward, loss[0]))
-        if episode_cnt % 20 == 0:
+        if episode_cnt % UPDATE_TARGET_NET_FREQ == 0:
             agent.update_target_network()
+
+        if finish.check(loss[0]) == True:
+            break;
+
     env.close()
-    print('No bug lol!!!')
+    print("Training finished, save model to", out_model_path)
+    agent.save_model(out_model_path)
 
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("arg1 as output model path")
+        sys.exit()
 
-train_model()
+    train_model(100, sys.argv[1])
