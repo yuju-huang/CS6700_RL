@@ -1,21 +1,26 @@
-import gym
 import numpy as np
 import random
 import tensorflow as tf
+import time
 import matplotlib.pyplot as plt
-%matplotlib inline
+import sys
 
-env = gym.make('FrozenLake-v0')
+from environment import Environment
+from env_xapian import Xapian
+from rl import Action
+
+env = Environment(Xapian())
 
 tf.reset_default_graph()
 #These lines establish the feed-forward part of the network used to choose actions
-inputs1 = tf.placeholder(shape=[1,16],dtype=tf.float32)
-W = tf.Variable(tf.random_uniform([16,4],0,0.01))
-Qout = tf.matmul(inputs1,W)
+inputs1 = tf.placeholder(shape=[1,4],dtype=tf.float32)
+W = tf.Variable(tf.random_uniform([4,3],0,0.01))
+o1 = tf.matmul(inputs1,W)
+Qout = tf.nn.relu(o1)
 predict = tf.argmax(Qout,1)
 
 #Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
-nextQ = tf.placeholder(shape=[1,4],dtype=tf.float32)
+nextQ = tf.placeholder(shape=[1,3],dtype=tf.float32)
 loss = tf.reduce_sum(tf.square(nextQ - Qout))
 trainer = tf.train.GradientDescentOptimizer(learning_rate=0.1)
 updateModel = trainer.minimize(loss)
@@ -36,36 +41,55 @@ with tf.Session() as sess:
 
     for i in range(num_episodes):
         #Reset environment and get first new observation
-        s = env.reset()
+        s = env.start()
         rAll = 0
         d = False
         j = 0
+        print("----- Start training episodes=", i)
+        start = time.perf_counter()
         #The Q-Network
-        while j < 99:
+        while env.isRunning():
+            print("--- j=", j)
             j+=1
+            s = env.getStateVector()
+            print("s=", s)
+            if (s is None):
+                print("env finish")
+                break;
+
             #Choose an action by greedily (with e chance of random action) from the Q-network
-            a,allQ = sess.run([predict,Qout],feed_dict={inputs1:np.identity(16)[s:s+1]})
+            a,allQ = sess.run([predict,Qout],feed_dict={inputs1:s})
             if np.random.rand(1) < e:
-                a[0] = env.action_space.sample()
+                a[0] = Action.random()
+            #tf.print("a=", a, ", allQ=", allQ, output_stream=sys.stdout)
+            print("a=", Action(a),  ", allQ=", allQ)
             #Get new state and reward from environment
-            s1,r,d,_ = env.step(a[0])
+            r,s1 = env.step(a[0])
+            if (s1 is None):
+                print("env finish")
+                break;
+            
+            print("s1=" + str(s1) + ", r=" + str(r))
             #Obtain the Q' values by feeding the new state through our network
-            Q1 = sess.run(Qout,feed_dict={inputs1:np.identity(16)[s1:s1+1]})
+            Q1 = sess.run(Qout,feed_dict={inputs1:s1})
             #Obtain maxQ' and set our target value for chosen action.
             maxQ1 = np.max(Q1)
             targetQ = allQ
             targetQ[0,a[0]] = r + y*maxQ1
             #Train our network using target and predicted Q values
-            _,W1 = sess.run([updateModel,W],feed_dict={inputs1:np.identity(16)[s:s+1],nextQ:targetQ})
+            _,W1 = sess.run([updateModel,W],feed_dict={inputs1:s1,nextQ:targetQ})
             rAll += r
             s = s1
-            if d == True:
-                #Reduce chance of random action as we train the model.
-                e = 1./((i/50) + 10)
-                break
+            #if d == True:
+             #   #Reduce chance of random action as we train the model.
+              #  e = 1./((i/50) + 10)
+               # break
         jList.append(j)
         rList.append(rAll)
-print "Percent of succesful episodes: " + str(sum(rList)/num_episodes) + "%"
+        env.finish()
+        print("----- Finish training episodes ", i, " takes total time ", str((time.perf_counter() - start) * 1000) + " ms")
+        time.sleep(5)
+print("Percent of succesful episodes: " + str(sum(rList)/num_episodes) + "%")
 
 plt.plot(rList)
 plt.plot(jList)

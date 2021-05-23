@@ -22,10 +22,9 @@ class DockerEngine:
     def getCPUUtil(name):
 #        container = client.containers.get(name)
 #        status = container.stats(decode=True, stream=True)
-#        print(status)
         cmd = "docker stats --format \"{{.CPUPerc}}\" --no-stream " + name
         proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,
-                               stderr=subprocess.DEVNULL)
+                                stderr=subprocess.DEVNULL)
         out = proc.communicate()
         os.system('stty sane')
         r = re.findall(r"\d+\.\d+%", str(out[0]))
@@ -37,7 +36,6 @@ class DockerEngine:
         container = client.containers.get(name)
         status = container.stats(decode=False, stream=False)
         print("get CPU util takes " + str((time.perf_counter() - start) * 1000) + " ms")
-        print(status)
 
     def setCPUShare(name, share):
 #        container = client.containers.get(name)
