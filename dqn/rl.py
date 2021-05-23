@@ -44,7 +44,7 @@ class State:
         return self.lats[self.p99_idx]
 
     def np_vector(self):
-        return np.array([[self.cpu_util, self.p50_lat(), self.p95_lat(), self.p99_lat()]])
+        return np.array([self.cpu_util, self.p50_lat(), self.p95_lat(), self.p99_lat()])
 
 def test_random():
     print(Action.random())

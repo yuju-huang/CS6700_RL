@@ -13,12 +13,24 @@ class Environment:
     
     def __init__(self, actor):
         self.actor = actor
+        self.state_before_done = None
+        self.reward_before_done = None
+
+    def reset(self):
+        time.sleep(2)
+        self.start()
+        self.state_before_done = None
+        self.reward_before_done = None
+        state = self.getStateVector()
+        while state is None:
+            state = self.getStateVector()
+        return state 
 
     def start(self):
         # Run server and start workloads
         self.actor.start()
 
-    def finish(self):
+    def close(self):
         self.actor.finish()
 
     def isRunning(self):
@@ -40,10 +52,14 @@ class Environment:
         # Collect new state
         state = self.getState()
         if state is None:
-            return None, None
+            return self.state_before_done, self.reward_before_done, True, None
 
         # Calculate reward using performance QoS and resource utlization
-        return self.reward(state), state.np_vector()
+        reward = self.reward(state)
+
+        self.state_before_done = state.np_vector()
+        self.reward_before_done = reward
+        return state.np_vector(), reward, False, None
 
     # TODO: The reward function should be in evn_xapian
     def reward(self, state):

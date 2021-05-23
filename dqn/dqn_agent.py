@@ -4,6 +4,8 @@ from tensorflow.python.keras import Sequential
 from tensorflow.python.keras.layers import Dense
 from tensorflow.keras import optimizers
 
+from rl import Action
+
 class DqnAgent:
     """
     DQN Agent
@@ -12,6 +14,8 @@ class DqnAgent:
     learning how to predict the expected long-term return, the Q value given
     a state-action pair.
     """
+    Gamma = 0.95
+    LearningRate = 0.001
 
     def __init__(self):
         self.q_net = self._build_dqn_model()
@@ -29,12 +33,12 @@ class DqnAgent:
         """
         q_net = Sequential()
         q_net.add(Dense(64, input_dim=4, activation='relu',
-                        kernel_initializer='he_uniform'))
+                        kernel_initializer='he_uniform', dtype='float64'))
         q_net.add(Dense(32, activation='relu', kernel_initializer='he_uniform'))
-        q_net.add(
-            Dense(2, activation='linear', kernel_initializer='he_uniform'))
-        q_net.compile(optimizer=optimizers.Adam(learning_rate=0.001),
+        q_net.add(Dense(3, activation='linear', kernel_initializer='he_uniform'))
+        q_net.compile(optimizer=optimizers.Adam(learning_rate=DqnAgent.LearningRate),
                       loss='mse', run_eagerly=True)
+        q_net.summary()
         return q_net
 
     def random_policy(self, state):
@@ -44,7 +48,10 @@ class DqnAgent:
         :param state: not used
         :return: action
         """
-        return np.random.randint(0, 2)
+        a = Action.random()
+        print("random_action=", a)
+        return a
+#        return np.random.randint(0, 2)
 
     def collect_policy(self, state):
         """
@@ -66,7 +73,6 @@ class DqnAgent:
         :return: an action
         """
         state_input = tf.convert_to_tensor(state[None, :], dtype=tf.float32)
-        print("state in shape", state.shape)
         action_q = self.q_net(state_input)
         action = np.argmax(action_q.numpy()[0], axis=0)
         return action
@@ -91,21 +97,20 @@ class DqnAgent:
         state_batch, next_state_batch, action_batch, reward_batch, done_batch \
             = batch
         current_q = self.q_net(state_batch).numpy()
-        print("current_q in shape: ", current_q.shape)
         target_q = np.copy(current_q)
         next_q = self.target_q_net(next_state_batch).numpy()
         max_next_q = np.amax(next_q, axis=1)
         for i in range(state_batch.shape[0]):
             target_q_val = reward_batch[i]
             if not done_batch[i]:
-                target_q_val += 0.95 * max_next_q[i]
+                target_q_val += DqnAgent.Gamma * max_next_q[i]
             target_q[i][action_batch[i]] = target_q_val
         training_history = self.q_net.fit(x=state_batch, y=target_q, verbose=0)
         loss = training_history.history['loss']
         return loss
 
-        def save_model(self):
-            tf.saved_model.save(self.q_net, self.model_location)
+    def save_model(self):
+        tf.saved_model.save(self.q_net, self.model_location)
   
-        def load_model(self):
-            self.q_net = tf.saved_model.load(self.model_location)
+    def load_model(self):
+        self.q_net = tf.saved_model.load(self.model_location)

@@ -10,6 +10,10 @@ from dqn_agent import DqnAgent
 from replay_buffer import ReplayBuffer
 import tensorflow as tf
 
+from environment import Environment
+from env_xapian import Xapian
+from rl import Action
+
 tf.enable_eager_execution()
 
 def evaluate_training_result(env, agent):
@@ -23,7 +27,8 @@ def evaluate_training_result(env, agent):
     :return: average reward across episodes
     """
     total_reward = 0.0
-    episodes_to_play = 10
+#    episodes_to_play = 10
+    episodes_to_play = 1
     for i in range(episodes_to_play):
         state = env.reset()
         done = False
@@ -31,6 +36,7 @@ def evaluate_training_result(env, agent):
         while not done:
             action = agent.policy(state)
             next_state, reward, done, _ = env.step(action)
+            print("evaluate_training_result state=", state, ", action=", action, ", done=", done)
             episode_reward += reward
             state = next_state
         total_reward += episode_reward
@@ -55,10 +61,10 @@ def collect_gameplay_experiences(env, agent, buffer):
         next_state, reward, done, _ = env.step(action)
         if done:
             reward = -1.0
+        print("collect_gameplay_experiences state=", state, ", action=", action, ", done=", done)
         buffer.store_gameplay_experience(state, next_state,
                                          reward, action, done)
         state = next_state
-
 
 def train_model(max_episodes=50000):
     """
@@ -68,13 +74,14 @@ def train_model(max_episodes=50000):
     """
     agent = DqnAgent()
     buffer = ReplayBuffer()
-    env = gym.make('CartPole-v0')
-    for _ in range(100):
-        collect_gameplay_experiences(env, agent, buffer)
+    env = Environment(Xapian())
+#    for _ in range(100):
+#        collect_gameplay_experiences(env, agent, buffer)
     for episode_cnt in range(max_episodes):
         collect_gameplay_experiences(env, agent, buffer)
         gameplay_experience_batch = buffer.sample_gameplay_batch()
         loss = agent.train(gameplay_experience_batch)
+
         avg_reward = evaluate_training_result(env, agent)
         print('Episode {0}/{1} and so far the performance is {2} and '
               'loss is {3}'.format(episode_cnt, max_episodes,
