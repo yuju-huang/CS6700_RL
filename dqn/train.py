@@ -37,7 +37,7 @@ def evaluate_training_result(env, agent):
         while not done:
             action = agent.policy(state)
             next_state, reward, done, _ = env.step(action)
-            print("evaluate_training_result state=", state, ", reward=", reward, ", action=", action, ", done=", done)
+            print("evaluate_training_result state=", state, ", action=", action, ", next_state=", next_state, ", reward=", reward, ", done=", done)
             episode_reward += reward
             state = next_state
         total_reward += episode_reward
@@ -61,7 +61,7 @@ def collect_gameplay_experiences(env, agent, buffer):
         next_state, reward, done, _ = env.step(action)
         if done:
             reward = -1.0
-        print("collect_gameplay_experiences state=", state, ", reward=", reward, ", action=", action, ", done=", done)
+        print("collect_gameplay_experiences state=", state, ", action=", action, ", next_state=", next_state, ", reward=", reward, ", done=", done)
         buffer.store_gameplay_experience(state, next_state,
                                          reward, action, done)
         state = next_state
@@ -84,7 +84,7 @@ class FinishAgent:
 
         return False
 
-def train_model(max_episodes, out_model_path):
+def train_model(max_episodes, out_model_path, workload_path, lat_weight, util_weight, p99_qos):
     """
     Trains a DQN agent to play the CartPole game by trial and error
 
@@ -92,7 +92,7 @@ def train_model(max_episodes, out_model_path):
     """
     agent = DqnAgent()
     buffer = ReplayBuffer()
-    env = Environment(Xapian())
+    env = Environment(Xapian(workload_path), lat_weight, util_weight, p99_qos)
     finish = FinishAgent()
 #    for _ in range(100):
 #        collect_gameplay_experiences(env, agent, buffer)
@@ -115,9 +115,50 @@ def train_model(max_episodes, out_model_path):
     print("Training finished, save model to", out_model_path)
     agent.save_model(out_model_path)
 
+def predict_model(out_model_path, workload_path, lat_weight, util_weight, p99_qos):
+    agent = DqnAgent(model_path)
+    env = Environment(Xapian(workload_path), lat_weight, util_weight, p99_qos)
+    state = env.reset()
+    done = False
+
+    states = []
+
+    print("Original state=", state)
+    while not done:
+        action = agent.predict(state)
+#        action2 = agent.policy(state)
+#        assert action == action2 # Verified using workload_180s.dec.
+
+        next_state, reward, done, _ = env.step(action)
+        states.append(next_state)
+        print("state=", state, ", action=", action, ", next_state=", next_state)
+        state = next_state
+
+    print(states)
+    env.close()
+
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("arg1 as output model path")
+    if len(sys.argv) < 7:
+        print("expect 7 args but is given ", len(sys.argv))
+        print("arg list: (predict | train); output model path; workload path; " 
+                         "latency weight; utilization weight; p99 latency qos")
         sys.exit()
 
-    train_model(100, sys.argv[1])
+    mode = sys.argv[1]
+    model_path = sys.argv[2]
+    workload_path = sys.argv[3]
+    lat_weight = float(sys.argv[4])
+    util_weight = float(sys.argv[5])
+    p99_qps = int(sys.argv[6])
+
+    print("mode=", mode, ", model_path=", model_path, ", workload_path=", workload_path, \
+          ", lat_weight=", lat_weight, ", util_weight=", util_weight, ", p99_qps=", p99_qps)
+
+    if mode == "train":
+        train_model(50, model_path, workload_path, lat_weight, util_weight, p99_qps)
+    elif mode == "predict":
+        predict_model(model_path, workload_path, lat_weight, util_weight, p99_qps)
+        pass
+    else:
+        print("Invalid mode")
+        sys.exit()

@@ -6,13 +6,15 @@ from rl import Action
 from rl import Reward
 
 class Environment:
-    # The weight for calculating reward.
-    p99_qos = 10 # 10 ms as qos violation
-    lat_weight = 0.8
-    util_weight = 0.2
-    
-    def __init__(self, actor):
+    def __init__(self, actor, lat_weight, util_weight, p99_qos):
         self.actor = actor
+
+        self.p99_qos = p99_qos 
+        self.lat_weight = lat_weight
+        self.util_weight = util_weight
+    
+        # Cache states from the previous action to prevent workload finishes
+        # without reporting states.
         self.state_before_done = None
         self.reward_before_done = None
 
@@ -63,17 +65,17 @@ class Environment:
 
     # TODO: The reward function should be in evn_xapian
     def reward(self, state):
-        return Environment.rewardImpl(state, self.actor.getMaxCPUShare())
+        return self.rewardImpl(state, self.actor.getMaxCPUShare())
 
-    def rewardImpl(state, max_cpu):
+    def rewardImpl(self, state, max_cpu):
         r = 0
-        if (state.p99_lat() > Environment.p99_qos):
-            r += (-1) * Environment.lat_weight * (state.p99_lat() / Environment.p99_qos)
+        if (state.p99_lat() > self.p99_qos):
+            r += (-1) * self.lat_weight * (state.p99_lat() / self.p99_qos) * 0.1
         else:
-            r += 1 * Environment.lat_weight
+            r += 1 * self.lat_weight
 
         cpu_util = state.cpu_util / max_cpu
-        r += (1 - cpu_util) * Environment.util_weight
+        r += (1 - cpu_util) * self.util_weight
         return r
 
 def dump(reward, state):
@@ -109,19 +111,5 @@ def test():
         dump(r, s)
         time.sleep(1)
 
-def test_reward():
-    s1 = State("500%", [5, 5, 5])
-    s2 = State("200%", [5, 5, 15])
-    
-    r1 = Environment.rewardImpl(s1, 8)
-    r2 = Environment.rewardImpl(s2, 8)
-
-    print("r1=" + str(r1))
-    print("r2=" + str(r2))
-
-    assert (r1 == (1 * Environment.lat_weight) + Environment.util_weight * float(3/8))
-    assert (r2 == (-1 * (s2.p99_lat() / Environment.p99_qos) * Environment.lat_weight) + Environment.util_weight * float(6/8))
-
 if __name__ == "__main__":
-    test_reward()
     test()

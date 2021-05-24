@@ -12,7 +12,8 @@ from rl import Action
 
 class Xapian:
     min_cpu_share = 1
-    max_cpu_share = 8
+    #max_cpu_share = 8
+    max_cpu_share = 16
     num_lats = 3
     scale_factor = 2
     mq_path = "/tmp"
@@ -21,7 +22,7 @@ class Xapian:
     mq_cmd_put_lat = 2
     mq_cmd_finish = 1
     get_util_interval = 0.3
-    default_workload_file = "/home/yh885/TailBench/xapian/workload_10s.dec"
+    default_workload_file = "" #"/home/yh885/TailBench/xapian/workload_10s.dec"
 
     def __init__(self, workload_path=default_workload_file):
         # -- Container info
@@ -34,8 +35,8 @@ class Xapian:
         self.workload_file = workload_path
 
     def start(self):
-        self.__startServer()
-        self.__startClient()
+        self.startServer()
+        self.startClient()
 
     def isRunning(self):
         cmd = "ps aux | grep xapian_networked_client | grep -v grep | awk '{print $2}'"
@@ -61,7 +62,8 @@ class Xapian:
         #cpuUtil = float(c.strip('%')) / 100
 
         # Format like 6.2, which is a util for all cpus so need to scale it by num_cpus
-        cpuUtil = float(psutil.cpu_percent(Xapian.get_util_interval) * self.num_cpus) / 100
+        #cpuUtil = float(psutil.cpu_percent(Xapian.get_util_interval) * self.num_cpus) / 100
+        cpuUtil = (float)(self.cpu_share)
         lats = self.__get_lats()
         if (lats == None):
             return None
@@ -80,6 +82,7 @@ class Xapian:
         else:
             return
         DockerEngine.setCPUShare(self.server_name, self.cpu_share)
+        time.sleep(0.1)
 
     def getMaxCPUShare(self):
         return self.max_cpu_share
@@ -89,7 +92,7 @@ class Xapian:
         self.server_name = name
 
     # ----- Internal implementation -----
-    def __startServer(self):
+    def startServer(self):
         self.server_name = "xapian-" + datetime.now().strftime("%H.%M.%S")
         arg = "-it -p 3366:3366 --entrypoint /TailBench/xapian/run_server.sh yh885/tailbench 8"
         DockerEngine.run(arg, self.server_name)
@@ -97,7 +100,7 @@ class Xapian:
         DockerEngine.setCPUShare(self.server_name, self.cpu_share)
         print("done start server")
 
-    def __startClient(self):
+    def startClient(self):
         cmd = "/home/yh885/TailBench/xapian/run_client.sh 10000 8 1 " + self.workload_file + " > client.log 2>&1"
         self.__shell_run(cmd)
         self.mq_key = ipc.ftok(self.mq_path, self.mq_prj_id)
@@ -125,28 +128,33 @@ class Xapian:
 
 def test_doAction():
     x = Xapian()
-    name = "frosty_golick"
+    name = "yo"
     x.setServerName(name)
+    DockerEngine.setCPUShare(name, 1)
+    x.startClient()
+    time.sleep(5)
+    print("Original state=", x.getState())
     x.doAction(Action.SCALE_UP)
-    time.sleep(1)
+    print("SCALE_UP, state=", x.getState())
     x.doAction(Action.SCALE_UP)
-    time.sleep(1)
+    print("SCALE_UP, state=", x.getState())
     x.doAction(Action.SCALE_UP)
-    time.sleep(1)
+    print("SCALE_UP, state=", x.getState())
     x.doAction(Action.SCALE_UP)
-    time.sleep(1)
+    print("SCALE_UP, state=", x.getState())
     x.doAction(Action.SCALE_UP)
+    print("SCALE_UP, state=", x.getState())
     print("done scale_up, sleep 3 sec")
     time.sleep(3)
 
     x.doAction(Action.SCALE_DOWN)
-    time.sleep(1)
+    print("SCALE_DOWN, state=", x.getState())
     x.doAction(Action.SCALE_DOWN)
-    time.sleep(1)
+    print("SCALE_DOWN, state=", x.getState())
     x.doAction(Action.SCALE_DOWN)
-    time.sleep(1)
+    print("SCALE_DOWN, state=", x.getState())
     x.doAction(Action.SCALE_DOWN)
-    time.sleep(1)
+    print("SCALE_DOWN, state=", x.getState())
     x.doAction(Action.SCALE_DOWN)
     print("done scale_down, sleep 3 sec")
     time.sleep(3)
@@ -156,5 +164,5 @@ def test_getState():
         print(psutil.cpu_percent(0.3))
 
 if __name__ == "__main__":
-    test_getState()
-    #test_doAction()
+    #test_getState()
+    test_doAction()

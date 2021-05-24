@@ -14,16 +14,19 @@ class DqnAgent:
     learning how to predict the expected long-term return, the Q value given
     a state-action pair.
     """
-    Gamma = 0.95
-    LearningRate = 0.001
+    Gamma = 0.8
+    LearningRate = 0.01
+    RandomProb = 0.2
 
     def __init__(self, location=None):
         if location is None:
             self.q_net = self._build_dqn_model()
             self.target_q_net = self._build_dqn_model()
         else:
-            self.q_net = self._build_dqn_model()
+            self.q_net = self.load_model(location)
+            assert self.q_net is not None
             self.target_q_net = None
+        self.q_net.summary()
 
     @staticmethod
     def _build_dqn_model():
@@ -42,7 +45,6 @@ class DqnAgent:
         q_net.add(Dense(3, activation='linear', kernel_initializer='he_uniform'))
         q_net.compile(optimizer=optimizers.Adam(learning_rate=DqnAgent.LearningRate),
                       loss='mse', run_eagerly=True)
-        q_net.summary()
         return q_net
 
     def random_policy(self, state):
@@ -61,7 +63,7 @@ class DqnAgent:
         :param state: the game state
         :return: action
         """
-        if np.random.random() < 0.05:
+        if np.random.random() < DqnAgent.RandomProb:
             return self.random_policy(state)
         return self.policy(state)
 
@@ -104,16 +106,22 @@ class DqnAgent:
         for i in range(state_batch.shape[0]):
             target_q_val = reward_batch[i]
             if not done_batch[i]:
-                target_q_val += DqnAgent.Gamma * max_next_q[i]
+                target_q_val = (1 - DqnAgent.Gamma) * target_q_val + DqnAgent.Gamma * max_next_q[i]
+                #target_q_val += DqnAgent.Gamma * max_next_q[i]
             target_q[i][action_batch[i]] = target_q_val
         training_history = self.q_net.fit(x=state_batch, y=target_q, verbose=0)
         loss = training_history.history['loss']
         return loss
 
+    def predict(self, state):
+        print("predict, state=", state, ", state.shape=", state.shape)
+        result = self.q_net.predict(np.expand_dims(state,axis=0))
+        return np.argmax(result[0], axis=0)
+
     def save_model(self, location):
         print("Start save model to ", location)
-        tf.saved_model.save(self.q_net, location)
+        self.q_net.save(location)
         print("Done save model to ", location)
   
     def load_model(self, location):
-        self.q_net = tf.saved_model.load(location)
+        return tf.keras.models.load_model(location)
