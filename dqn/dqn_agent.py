@@ -114,7 +114,6 @@ class DqnAgent:
         return loss
 
     def predict(self, state):
-        print("predict, state=", state, ", state.shape=", state.shape)
         result = self.q_net.predict(np.expand_dims(state,axis=0))
         return np.argmax(result[0], axis=0)
 

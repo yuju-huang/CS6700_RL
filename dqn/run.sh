@@ -25,14 +25,16 @@ p99_qps=$5
 model_name=training_lat${lat_weight}_util${util_weight}.model
 log_file=${LOGS_PATH}/${mode}_lat${lat_weight}_util${util_weight}_$workload.log
 
+echo "Write log to "$log_file
 rm $log_file
 date > $log_file
 sudo ipcrm --all=msg
-sudo python3 train.py $mode $MODEL_PATH/$model_name $WORKLOAD_ROOT/$workload $lat_weight $util_weight $p99_qps #>> $log_file 2>&1
+sudo python3 train.py $mode $MODEL_PATH/$model_name $WORKLOAD_ROOT/$workload $lat_weight $util_weight $p99_qps >> $log_file 2>&1
 }
 
-lat_weights=(1)
+#lat_weights=(5)
 #lat_weights=(1 2 5 8 9)
+lat_weights=(2 5 8)
 p99_qps=10
 do_train() {
 workload="workload_fix4s_20s.dec"

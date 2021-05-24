@@ -6,13 +6,9 @@ from rl import Action
 from rl import Reward
 
 class Environment:
-    def __init__(self, actor, lat_weight, util_weight, p99_qos):
+    def __init__(self, actor):
         self.actor = actor
 
-        self.p99_qos = p99_qos 
-        self.lat_weight = lat_weight
-        self.util_weight = util_weight
-    
         # Cache states from the previous action to prevent workload finishes
         # without reporting states.
         self.state_before_done = None
@@ -63,27 +59,17 @@ class Environment:
         self.reward_before_done = reward
         return state.np_vector(), reward, False, None
 
-    # TODO: The reward function should be in evn_xapian
     def reward(self, state):
-        return self.rewardImpl(state, self.actor.getMaxCPUShare())
-
-    def rewardImpl(self, state, max_cpu):
-        r = 0
-        if (state.p99_lat() > self.p99_qos):
-            r += (-1) * self.lat_weight * (state.p99_lat() / self.p99_qos) * 0.1
-        else:
-            r += 1 * self.lat_weight
-
-        cpu_util = state.cpu_util / max_cpu
-        r += (1 - cpu_util) * self.util_weight
-        return r
+        return self.actor.reward(state)
 
 def dump(reward, state):
     print("state=" + str(state))
     print("reward=" + str(reward))
 
 def test():
-    e = Environment(Xapian())
+    e = Environment(
+        Xapian("/home/yh885/TailBench/xapian/workload_fix4s_20s.dec",
+               lat_weight, util_weight, p99_qos))
     e.start()
     while True:
         r, s = e.step(Action.SCALE_UP)

@@ -14,6 +14,8 @@ class Xapian:
     min_cpu_share = 1
     #max_cpu_share = 8
     max_cpu_share = 16
+    max_latency = 100
+    min_latency = 1
     num_lats = 3
     scale_factor = 2
     mq_path = "/tmp"
@@ -22,9 +24,8 @@ class Xapian:
     mq_cmd_put_lat = 2
     mq_cmd_finish = 1
     get_util_interval = 0.3
-    default_workload_file = "" #"/home/yh885/TailBench/xapian/workload_10s.dec"
 
-    def __init__(self, workload_path=default_workload_file):
+    def __init__(self, workload_path, lat_weight, util_weight, p99_qos):
         # -- Container info
         self.server_name = ""
         self.cpu_share = 1
@@ -33,6 +34,14 @@ class Xapian:
         self.mq = None
         self.num_cpus = os.cpu_count()
         self.workload_file = workload_path
+
+        self.p99_qos = p99_qos 
+        self.lat_weight = lat_weight
+        self.util_weight = util_weight
+        # The unit in reward range [-1, 1]
+        self.lat_unit = (float)(2) / ((Xapian.max_latency - Xapian.min_latency + 1) / self.p99_qos)
+        self.util_unit = (float)(2) / (Xapian.max_cpu_share - Xapian.min_cpu_share + 1)
+        print("self.lat_unit=", self.lat_unit, ", self.util_unit=", self.util_unit)
 
     def start(self):
         self.startServer()
@@ -84,8 +93,24 @@ class Xapian:
         DockerEngine.setCPUShare(self.server_name, self.cpu_share)
         time.sleep(0.1)
 
+    def reward(self, state):
+        assert state is not None
+
+        lat_reward = 1
+        if (state.p99_lat() > self.p99_qos):
+            lat_reward -= ((state.p99_lat() - self.p99_qos) / self.p99_qos) * self.lat_unit
+
+        util_reward = 1
+        util_reward -= (state.cpu_util - Xapian.min_cpu_share) * self.util_unit
+        reward = lat_reward * self.lat_weight + util_reward * self.util_weight
+
+        return lat_reward * self.lat_weight + util_reward * self.util_weight
+
     def getMaxCPUShare(self):
         return self.max_cpu_share
+
+    def getMaxLatency(self):
+        return self.max_latency
 
     # ----- Internal APIs for test only
     def setServerName(self, name):

@@ -59,8 +59,6 @@ def collect_gameplay_experiences(env, agent, buffer):
     while not done:
         action = agent.collect_policy(state)
         next_state, reward, done, _ = env.step(action)
-        if done:
-            reward = -1.0
         print("collect_gameplay_experiences state=", state, ", action=", action, ", next_state=", next_state, ", reward=", reward, ", done=", done)
         buffer.store_gameplay_experience(state, next_state,
                                          reward, action, done)
@@ -68,21 +66,25 @@ def collect_gameplay_experiences(env, agent, buffer):
 
 class FinishAgent:
     AcceptLoss = 2
+    AcceptReward = 0
     FinishThreshold = 5
 
     def __init__(self):
-        self.loss_list = []
+        self.reset()
 
-    def check(self, loss):
-        if loss <= FinishAgent.AcceptLoss:
+    def check(self, reward, loss):
+        if (loss <= FinishAgent.AcceptLoss) and (reward > FinishAgent.AcceptReward):
             self.loss_list.append(loss)
             if len(self.loss_list) == FinishAgent.FinishThreshold:
-                self.loss_list = []
+                self.reset()
                 return True
         else:
-            self.loss_list = []
+            self.reset()
 
         return False
+
+    def reset(self):
+        self.loss_list = []
 
 def train_model(max_episodes, out_model_path, workload_path, lat_weight, util_weight, p99_qos):
     """
@@ -92,7 +94,7 @@ def train_model(max_episodes, out_model_path, workload_path, lat_weight, util_we
     """
     agent = DqnAgent()
     buffer = ReplayBuffer()
-    env = Environment(Xapian(workload_path), lat_weight, util_weight, p99_qos)
+    env = Environment(Xapian(workload_path, lat_weight, util_weight, p99_qos))
     finish = FinishAgent()
 #    for _ in range(100):
 #        collect_gameplay_experiences(env, agent, buffer)
@@ -108,7 +110,7 @@ def train_model(max_episodes, out_model_path, workload_path, lat_weight, util_we
         if episode_cnt % UPDATE_TARGET_NET_FREQ == 0:
             agent.update_target_network()
 
-        if finish.check(loss[0]) == True:
+        if finish.check(avg_reward, loss[0]) == True:
             break;
 
     env.close()
