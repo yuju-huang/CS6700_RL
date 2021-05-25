@@ -6,6 +6,7 @@ agent will play the game episode by episode, store the gameplay experiences
 and then use the saved gameplay experiences to train the underlying model.
 """
 import sys
+import time
 from dqn_agent import DqnAgent
 from replay_buffer import ReplayBuffer
 import tensorflow as tf
@@ -35,7 +36,7 @@ def evaluate_training_result(env, agent):
         done = False
         episode_reward = 0.0
         while not done:
-            action = agent.policy(state)
+            action = agent.policy(state.np_vector())
             next_state, reward, done, _ = env.step(action)
             print("evaluate_training_result state=", state, ", action=", action, ", next_state=", next_state, ", reward=", reward, ", done=", done)
             episode_reward += reward
@@ -65,6 +66,9 @@ def collect_gameplay_experiences(env, agent, buffer):
         state = next_state
 
 class FinishAgent:
+    #AcceptLoss = 30000
+    #AcceptReward = -30000
+    #FinishThreshold = 1
     AcceptLoss = 2
     AcceptReward = 0
     FinishThreshold = 5
@@ -86,13 +90,20 @@ class FinishAgent:
     def reset(self):
         self.loss_list = []
 
+def retrain_model(max_episodes, model_path, workload_path, lat_weight, util_weight, p99_qos):
+    agent = DqnAgent(DqnAgent.Mode.RETRAIN, model_path)
+    train_model_impl(max_episodes, (model_path + "_retrained"), workload_path, lat_weight, util_weight, p99_qos, agent)
+
 def train_model(max_episodes, out_model_path, workload_path, lat_weight, util_weight, p99_qos):
+    agent = DqnAgent(DqnAgent.Mode.TRAIN)
+    train_model_impl(max_episodes, model_path, workload_path, lat_weight, util_weight, p99_qos, agent)
+    
+def train_model_impl(max_episodes, out_model_path, workload_path, lat_weight, util_weight, p99_qos, agent):
     """
     Trains a DQN agent to play the CartPole game by trial and error
 
     :return: None
     """
-    agent = DqnAgent()
     buffer = ReplayBuffer()
     env = Environment(Xapian(workload_path, lat_weight, util_weight, p99_qos))
     finish = FinishAgent()
@@ -118,31 +129,40 @@ def train_model(max_episodes, out_model_path, workload_path, lat_weight, util_we
     agent.save_model(out_model_path)
 
 def predict_model(out_model_path, workload_path, lat_weight, util_weight, p99_qos):
-    agent = DqnAgent(model_path)
-    env = Environment(Xapian(workload_path), lat_weight, util_weight, p99_qos)
+    agent = DqnAgent(DqnAgent.Mode.PREDICT, model_path)
+    env = Environment(Xapian(workload_path, lat_weight, util_weight, p99_qos))
     state = env.reset()
+
+    start = time.perf_counter()
+    states = [state]
+    timestamps = [0]
+    actions = [int(Action.NONE)]
+    rewards = [0]
     done = False
 
-    states = []
-
-    print("Original state=", state)
     while not done:
-        action = agent.predict(state)
-#        action2 = agent.policy(state)
+        action = agent.predict(state.np_vector())
+#        action2 = agent.policy(state.np_vector())
 #        assert action == action2 # Verified using workload_180s.dec.
-
         next_state, reward, done, _ = env.step(action)
+        timestamp = time.perf_counter() - start
+
         states.append(next_state)
-        print("state=", state, ", action=", action, ", next_state=", next_state)
+        timestamps.append(timestamp)
+        actions.append(action)
+        rewards.append(reward)
+
         state = next_state
 
-    print(states)
     env.close()
+
+    for i in list(range(len(states))):
+        print("timestamp=", timestamps[i], ", p99_lat=", states[i].p99_lat(), ", cpu_util=", states[i].cpu_util, ", action=", actions[i], ", reward=", rewards[i])
 
 if __name__ == "__main__":
     if len(sys.argv) < 7:
         print("expect 7 args but is given ", len(sys.argv))
-        print("arg list: (predict | train); output model path; workload path; " 
+        print("arg list: (predict | train | retrain); model path; workload path; " 
                          "latency weight; utilization weight; p99 latency qos")
         sys.exit()
 
@@ -156,8 +176,11 @@ if __name__ == "__main__":
     print("mode=", mode, ", model_path=", model_path, ", workload_path=", workload_path, \
           ", lat_weight=", lat_weight, ", util_weight=", util_weight, ", p99_qps=", p99_qps)
 
+    max_episodes = 50
     if mode == "train":
         train_model(50, model_path, workload_path, lat_weight, util_weight, p99_qps)
+    elif mode == "retrain":
+        retrain_model(50, model_path, workload_path, lat_weight, util_weight, p99_qps)
     elif mode == "predict":
         predict_model(model_path, workload_path, lat_weight, util_weight, p99_qps)
         pass

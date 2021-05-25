@@ -9,7 +9,7 @@ client = docker.from_env()
 class DockerEngine:
     @staticmethod
     def run(arg, name=None):
-        dockerCmd = "docker run "
+        dockerCmd = "docker run --rm "
         if (name != None):
             dockerCmd += "--name " + name + " "
         dockerCmd += arg

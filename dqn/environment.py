@@ -19,9 +19,9 @@ class Environment:
         self.start()
         self.state_before_done = None
         self.reward_before_done = None
-        state = self.getStateVector()
+        state = self.getState()
         while state is None:
-            state = self.getStateVector()
+            state = self.getState()
         return state 
 
     def start(self):
@@ -55,9 +55,9 @@ class Environment:
         # Calculate reward using performance QoS and resource utlization
         reward = self.reward(state)
 
-        self.state_before_done = state.np_vector()
+        self.state_before_done = state
         self.reward_before_done = reward
-        return state.np_vector(), reward, False, None
+        return state, reward, False, None
 
     def reward(self, state):
         return self.actor.reward(state)

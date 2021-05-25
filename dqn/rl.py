@@ -34,6 +34,9 @@ class State:
                                       + str(self.p95_lat()) + ", "
                                       + str(self.p99_lat()) + "]")
 
+    def cpu_util(self):
+        return self.cpu_util
+
     def p50_lat(self):
         return self.lats[self.p50_idx]
 

@@ -1,5 +1,7 @@
 import tensorflow as tf
 import numpy as np
+import os
+from enum import IntEnum
 from tensorflow.python.keras import Sequential
 from tensorflow.python.keras.layers import Dense
 from tensorflow.keras import optimizers
@@ -18,14 +20,30 @@ class DqnAgent:
     LearningRate = 0.01
     RandomProb = 0.2
 
-    def __init__(self, location=None):
+    QNetPostfix = "/q_net.tf"
+    TargetQNetPostfix = "/target_q_net.tf"
+
+    class Mode(IntEnum):
+        TRAIN = 0
+        RETRAIN = 1
+        PREDICT = 2
+
+    def __init__(self, mode, location=None):
         if location is None:
+            assert mode == DqnAgent.Mode.TRAIN
             self.q_net = self._build_dqn_model()
             self.target_q_net = self._build_dqn_model()
         else:
-            self.q_net = self.load_model(location)
-            assert self.q_net is not None
-            self.target_q_net = None
+            assert mode != DqnAgent.Mode.TRAIN
+            print("Load model from ", location)
+            self.q_net = self.load_model(location + DqnAgent.QNetPostfix)
+            self.target_q_net = self.load_model(location + DqnAgent.TargetQNetPostfix)
+            if mode == DqnAgent.Mode.RETRAIN:
+                self.q_net.compile(optimizer=optimizers.Adam(learning_rate=DqnAgent.LearningRate),
+                                   loss='mse', run_eagerly=True)
+
+        assert self.q_net is not None
+        assert self.target_q_net is not None
         self.q_net.summary()
 
     @staticmethod
@@ -119,8 +137,12 @@ class DqnAgent:
 
     def save_model(self, location):
         print("Start save model to ", location)
-        self.q_net.save(location)
+        tf.keras.experimental.export_saved_model(self.q_net, location + DqnAgent.QNetPostfix)
+        tf.keras.experimental.export_saved_model(self.target_q_net, location + DqnAgent.TargetQNetPostfix)
+        #self.q_net.save(location + DqnAgent.QNetPostfix, save_format='tf')
+        #self.q_target_net.save(location + DqnAgent.TargetQNetPostfix, save_format='tf')
         print("Done save model to ", location)
   
     def load_model(self, location):
-        return tf.keras.models.load_model(location)
+        #return tf.keras.models.load_model(location)
+        return tf.keras.experimental.load_from_saved_model(location)
