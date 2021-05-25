@@ -18,6 +18,8 @@ from rl import Action
 tf.enable_eager_execution()
 
 UPDATE_TARGET_NET_FREQ = 5
+TRAINING_ACTION_INTERVAL = 0.2
+PREDICT_ACTION_INTERVAL = 0.2
 def evaluate_training_result(env, agent):
     """
     Evaluates the performance of the current DQN agent by using it to play a
@@ -41,6 +43,7 @@ def evaluate_training_result(env, agent):
             print("evaluate_training_result state=", state, ", action=", action, ", next_state=", next_state, ", reward=", reward, ", done=", done)
             episode_reward += reward
             state = next_state
+            time.sleep(TRAINING_ACTION_INTERVAL)
         total_reward += episode_reward
     average_reward = total_reward / episodes_to_play
     return average_reward
@@ -58,19 +61,20 @@ def collect_gameplay_experiences(env, agent, buffer):
     state = env.reset()
     done = False
     while not done:
-        action = agent.collect_policy(state)
+        action = agent.collect_policy(state.np_vector())
         next_state, reward, done, _ = env.step(action)
         print("collect_gameplay_experiences state=", state, ", action=", action, ", next_state=", next_state, ", reward=", reward, ", done=", done)
-        buffer.store_gameplay_experience(state, next_state,
+        buffer.store_gameplay_experience(state.np_vector(), next_state.np_vector(),
                                          reward, action, done)
         state = next_state
+        time.sleep(TRAINING_ACTION_INTERVAL)
 
 class FinishAgent:
     #AcceptLoss = 30000
     #AcceptReward = -30000
     #FinishThreshold = 1
     AcceptLoss = 2
-    AcceptReward = 0
+    AcceptReward = 20
     FinishThreshold = 5
 
     def __init__(self):
@@ -153,11 +157,13 @@ def predict_model(out_model_path, workload_path, lat_weight, util_weight, p99_qo
         rewards.append(reward)
 
         state = next_state
+        time.sleep(PREDICT_ACTION_INTERVAL)
 
     env.close()
 
     for i in list(range(len(states))):
         print("timestamp=", timestamps[i], ", p99_lat=", states[i].p99_lat(), ", cpu_util=", states[i].cpu_util, ", action=", actions[i], ", reward=", rewards[i])
+    print("total reward=", sum(rewards))
 
 if __name__ == "__main__":
     if len(sys.argv) < 7:

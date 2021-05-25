@@ -40,7 +40,8 @@ class Xapian:
         self.util_weight = util_weight
         # The unit in reward range [-1, 1]
         self.lat_unit = (float)(2) / ((Xapian.max_latency - Xapian.min_latency + 1) / self.p99_qos)
-        self.util_unit = (float)(2) / (Xapian.max_cpu_share - Xapian.min_cpu_share + 1)
+        # The cpu_share has only 4 levels: 1, 2, 4, 8, 16 so there are 4 intervals
+        self.util_unit = (float)(2) / 4 #(Xapian.max_cpu_share - Xapian.min_cpu_share + 1)
         print("self.lat_unit=", self.lat_unit, ", self.util_unit=", self.util_unit)
 
     def start(self):
@@ -100,11 +101,24 @@ class Xapian:
         if (state.p99_lat() > self.p99_qos):
             lat_reward -= ((state.p99_lat() - self.p99_qos) / self.p99_qos) * self.lat_unit
 
-        util_reward = 1
-        util_reward -= (state.cpu_util - Xapian.min_cpu_share) * self.util_unit
-        reward = lat_reward * self.lat_weight + util_reward * self.util_weight
+        #util_reward = 1
+        #util_reward -= (state.cpu_util - Xapian.min_cpu_share) * self.util_unit
+        util_reward = self.util_reward(state.cpu_util)
 
         return lat_reward * self.lat_weight + util_reward * self.util_weight
+
+    def util_reward(self, cpu_util):
+        if cpu_util == self.min_cpu_share:
+            return 1
+        elif cpu_util == 2 * self.min_cpu_share:
+            return 0.5
+        elif cpu_util == 4 * self.min_cpu_share:
+            return 0
+        elif cpu_util == 8 * self.min_cpu_share:
+            return -0.5
+        else:
+            assert cpu_util == self.max_cpu_share
+            return -1
 
     def getMaxCPUShare(self):
         return self.max_cpu_share
@@ -128,7 +142,7 @@ class Xapian:
     def startClient(self):
         cmd = "/home/yh885/TailBench/xapian/run_client.sh 10000 8 1 " + self.workload_file + " > client.log 2>&1"
         self.__shell_run(cmd)
-        self.mq_key = ipc.ftok(self.mq_path, self.mq_prj_id)
+        self.mq_key = ipc.ftok(self.mq_path, self.mq_prj_id, silence_warning=True)
         self.mq = ipc.MessageQueue(self.mq_key, ipc.IPC_CREAT)
         print("done start client")
 

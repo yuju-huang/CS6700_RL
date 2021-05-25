@@ -18,7 +18,7 @@ class DqnAgent:
     """
     Gamma = 0.8
     LearningRate = 0.01
-    RandomProb = 0.2
+    RandomProb = 0.3
 
     QNetPostfix = "/q_net.tf"
     TargetQNetPostfix = "/target_q_net.tf"

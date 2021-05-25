@@ -41,7 +41,7 @@ if [ -z $6 ]; then
     fi
     model_path=${MODEL_PATH}/training_lat${lat_weight}_util${util_weight}/
 else
-    model_path=$6
+    model_path=$6/training_lat${lat_weight}_util${util_weight}/
 fi
 log_file=${model_path}/${mode}_lat${lat_weight}_util${util_weight}_$workload.log
 
@@ -52,9 +52,12 @@ rm $log_file
 date > $log_file
 sudo ipcrm --all=msg
 sudo python3 train.py $mode $model_path $WORKLOAD_ROOT/$workload $lat_weight $util_weight $p99_qps >> $log_file 2>&1
+if [[ $mode == "predict" ]]; then
+    cat $log_file | grep timestamp > ${log_file}.parse
+fi
 }
 
-lat_weights=(2)
+lat_weights=(2 5 8)
 #lat_weights=(1 2 5 8 9)
 #lat_weights=(2 5 8)
 p99_qps=10
@@ -79,8 +82,8 @@ done
 }
 
 do_predict() {
-#workload="workload_fix4s_20s.dec"
-workload="workload_180s.dec"
+workload="workload_fix4s_20s.dec"
+#workload="workload_180s.dec"
 for lat_weight in ${lat_weights[@]}; do
     util_weight=$((10 - lat_weight))
     lat_weight_p=`echo 'print('$lat_weight'/10)' | python3`
