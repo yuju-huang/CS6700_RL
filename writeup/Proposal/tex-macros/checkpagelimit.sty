@@ -1,0 +1,34 @@
+\ProvidesPackage{checkpagelimit}
+
+% maximum number of pages
+\newcounter{pagelimit}
+% pagecount is the number of pages without references
+\newcounter{pagecount}
+
+\newcommand\pagelimit[1]{\setcounter{pagelimit}{#1}}
+
+
+\newcommand\finalpage{
+    \setcounter{pagecount}{\value{page}}
+}
+
+\newcommand\pagelimittest{
+  \ifreport
+    0 = 1 % no limit
+  \else
+      \value{pagecount} > \value{pagelimit}
+  \fi
+}
+\newcommand\checkpagelimit {
+\ifnum \pagelimittest
+    \typeout{}
+    \typeout{@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@}
+    \typeout{@..@@@...@@@...@@+-----------------------------+...@@@...@@@...@@}
+    \typeout{@...@@@...@@@...@| +-------------------------+ |@...@@@...@@@...@}
+    \typeout{@@...@@@...@@@...| |THE PAPER IS OVER LENGTH!| |@@...@@@...@@@..@}
+    \typeout{@@@...@@@...@@@..| +-------------------------+ |@@@...@@@...@@@.@}
+    \typeout{@@@@...@@@...@@@.+-----------------------------+@@@@...@@@...@@@@}
+    \typeout{@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@}
+    \typeout{}
+\fi
+}

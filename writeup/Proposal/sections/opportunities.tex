@@ -1,0 +1,121 @@
+In this section, we discuss several research opportunities raised by
+the fluid OS perspective.
+
+\subsection{Resource reconfiguration mechanisms}  The key to
+designing an effective fluid OS is to support frequent or even
+continuous resource reconfigurations.
+The response time of each reconfiguration
+should be especially considered.  To the best of our knowledge,
+there are no previous mechanisms that support this requirement
+because there has not been a need.
+
+Linux supports hotplugging of various resources, including
+CPU~\cite{linux_cpu_hotplug} and memory~\cite{linux_memory_hotplug}.
+In a virtualized environment, ballooning\cite{waldspurger02} is
+used to support dynamic memory management and memory overcommitment.
+These techniques could be a starting point to understand how dynamic
+resource provisioning could be handled.
+But, in their current form, these techniques are heavyweight mechanisms
+intended for occasional manual configurations such as hardware
+upgrades and replacement. Furthermore, they are hardware-specific.
+For example, memory hotplugging can
+only manipulate memory in the granularity of DIMMs.
+In a fluid OS running in a virtual machine, we want the
+reconfiguration mechanisms to be general and minimize
+constraints imposed by hardware.
+
+As for memory ballooning, the memory size that a VM can allocate is
+ultimately limited by the amount of memory a VM is booted with,
+so it cannot achieve an unbounded memory elasticity.
+Moreover, memory ballooning operations as currently implemented are
+slow~\cite{amit2014vswapper} and likely not fast enough for a fluid OS.
+
+virtio-mem~\cite{virtio-mem} is a proposal to support memory
+hotplugging in KVM.  Unlike hotplugging, the
+interfaces are hardware-independent~\cite{jones2010virtio}.
+A virtual machine can request any amount of additional memory.
+virtio-mem will then realize the request using available
+physical memory.  Unlike memory ballooning, the requested size
+can exceed the amount of memory the virtual machine is booted with.
+We are investigating if a technique like virtio-mem can be
+applied to CPU allocation as well.
+
+\subsection{Resource reconfiguration policies}
+Besides reconfiguration mechanisms, another issue that must be
+tackled is how to distribute disaggregate resources among fluid
+OSes.  We will consider both heuristics and machine learning models.
+
+Before constructing a machine learning model, it is essential to
+develop a clear understanding of what data to collect. Similar to
+the heuristic method~\cite{sedaghat2013virtual}, a model accepts
+traces of workload performance (e.g., latency, quality of services)
+and the original VM configurations (e.g., number of CPU cores,
+memory size, and storage size) as input and determines the best
+resource distribute for the workload.  For data collection, there
+exist powerful tools for monitoring performance, like
+Prometheus~\cite{sukhija2019towards} and Grafana~\cite{Grafana},
+which introduce low overhead on fetching raw training data.  It may
+be beneficial to have separate models for learning the best allocation
+for different types of resources, for instance, one model focusing
+on the optimal number of cores, and another model focusing on the
+optimal memory size.
+
+Since reallocation of resources introduces overhead,
+the frequency of reconfiguration must be constrained.
+Analysis of such overheads may determine
+selection between using a heuristic method or machine learning.
+To minimize the runtime overhead of machine learning,
+the models could be trained offline with the collected
+data~\cite{zhang2019learned}. Deep learning
+models need a lot of data, and therefore the space overhead is also
+a significant consideration.
+
+\begin{comment}
+In the best-case scenario, if the
+overheads for space, trace collection, and running the learning
+algorithms cannot diminish the benefit of having such a machine
+learning approach, that would strongly encourage us to use such models
+for learning the policies on resource reconfiguration.
+\end{comment}
+
+\subsection{New OS abstractions}
+Another line of research is designing new abstractions that enable
+applications to leverage the abundant but dynamic nature of computing
+resources.  Designing abstractions is challenging as they should be
+simple but also comprehensive~\cite{lampson1983hints}.  Abstractions
+need to support \emph{query}, \emph{request}, and \emph{notification}
+interfaces. Applications can query a certain type of resource to see
+whether it is supported and, if so, request a certain amount of it.
+Applications will get notified once some amount of resources become
+available or cease to be available.
+
+One question is how to represent resources. For instance, how does
+an application specify a core allocation?
+One approach is that the OS simply provides a list of
+processor types and the application selects which and how many it
+wants.
+Another approach is that the application specifies in some way
+its requirements or the utility it can derive from core allocations
+and let the OS realize the allocation.
+
+As another example, memory can have many attributes
+(Section~\ref{sec:benefits}).  Again, one way to design the memory
+abstraction is to enumerate the attributes that applications may
+choose from and applications simply select \emph{what} they want.  A higher
+level abstraction, however, allows applications to specify \emph{how}
+they use memory.  For example, in Linux processes can specify that
+they access memory sequentially or randomly using the
+\texttt{madvise}~\cite{madvise} system call.
+
+The advantage of the first approach is that it is simple and can
+easily be extended when new types of hardware resources are added 
+to the system.  However, applications can only take advantage of
+the various types of resources if they are aware of the specific
+types.  The advantage of the second approach is that new hardware
+resources can be leveraged immediately as the OS can decide how
+best to use them.  However, this relies on applications having
+adequately specified how they use resources.
+
+The best approach may depend on the type of resource.
+For example, different types hardware accelerators
+(GPU, TPU, FPGA, etc.), may need distinct representations.

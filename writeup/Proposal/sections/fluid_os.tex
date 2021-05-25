@@ -1,0 +1,92 @@
+% \subsection{Why a fluid OS?}
+Hardware resource disaggregation breaks the conventional image of
+what a computer looks like.  Traditionally, an OS is booted with a
+fixed set of hardware resources at its disposal, with only limited
+and often crude options to change this set while the OS is running.
+We propose that to take full advantage of resource disaggregation,
+the OS should adopt an on-demand model of resource usage. A
+fluid OS can dynamically allocate or de-allocate its hardware
+resources as needed.
+
+One approach would be to have fluid OSes provide the
+same abstractions to application programmers as traditional
+OSes provide, hiding the underlying architecture altogether.
+With this approach, application deployment and development
+on a disaggregated architecture would be fully transparent.
+
+While attractive, we believe that the OS abstractions offered to
+application programmers need to be revisited so applications
+can take full advantage of disaggregated resources.
+We want to provide new OS abstractions and expose
+resource reconfigurability to application programmers.
+The applications can then manipulate computing resources to
+achieve application-specific optimizations.
+We can still support legacy applications, either by providing
+a compatibility layer or by running traditional OSes alongside
+fluid ones.
+
+\subsection{Benefits of a fluid OS}
+\label{sec:benefits}
+\noindent
+\textbf{Higher degree of resource elasticity}.
+Disaggregated architecture can achieve resource elasticity beyond
+what the traditional monolithic architecture can provide because
+the hardware resources are no longer constrained by hard boundaries.
+This creates various advantages.
+
+First, this capability allows applications to execute highly parallel
+tasks on a single machine (running a fluid OS) without
+having to resort to distributed computing frameworks like MapReduce.
+
+Second, a fluid OS supports memory-elastic applications.
+As argued in a paper on a memory elasticity
+benchmark~\cite{funaro2020memory}, memory-elastic applications have
+significant potential that cannot be realized in traditional
+architectures.  We believe the fluid OS can fully support
+such applications.
+
+Lastly, fluid OS allows applications to use multiple
+accelerators (e.g., GPU, TPU, FPGA, ASIC, etc.) as long as they are
+available anywhere in a disaggregated datacenter.
+In traditional architectures, applications can only use the
+accelerators that are locally available.  If a particular accelerator
+is needed on demand, the virtual machine would have to be migrated,
+potentially losing access to other accelerators.
+
+\noindent
+\textbf{New view of computing resources}.
+If the resource disaggregated datacenter provides an abundance of
+computing resources, a fluid OS enables a new way
+of exploiting those resources. We briefly illustrate some of the
+potential new uses.
+
+First, a disaggregated datacenter may provide different types of
+processor blades such as processors that have both brawny and
+wimpy cores~\cite{holzle2010brawny}. Applications running on a
+fluid OS can bind to cores that best suit them and adjust
+the binding dynamically.
+
+Second, new memory hierarchies can be formed either by speed or
+shareability. In terms of speed, a fluid OS can allocate
+its memory from different memory technologies (e.g., DRAM, 3D-stacked
+DRAM, NVM) that provide different speed versus space trade-offs. As for
+shareability, an OS can have some part of memory shared
+datacenter-wide, some part shared within a user-defined domain,
+and some part for private use. Big-data analytic and serverless
+applications usually need to store the short-lived intermediate
+data between each computing stage. It can leverage the user-defined
+shared memory to store the intermediate data.
+
+Third, different memory components can be configured with different
+consistency models. Applications may separate their logic into
+control planes, which often require a strong consistency guarantee,
+and data planes, which may tolerate relaxed consistency and trade
+it for higher performance.
+
+Fourth, applications may be able to use a mixture of non-volatile
+and volatile memory, avoiding the need for frequent checkpointing
+of data that needs to persist.
+
+% We believe resource reconfigurability will address important new use
+% cases as well allow for optimizing existing applications, both directions
+% for future research.

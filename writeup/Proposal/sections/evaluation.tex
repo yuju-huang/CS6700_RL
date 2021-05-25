@@ -1,0 +1,25 @@
+There are two key metrics in evaluating the effectiveness of resource
+management: performance improvement and resource utilization.  In
+addition, the overhead of ML prediction should also be considered,
+which include prediction response and space/time allocation for
+online training.
+
+The questions need to be addressed in our evaluation are:
+\begin{itemize}
+\item When workload is dynamic, can the prediction model catch up the
+variation?
+
+\item Can the resource utilization increase when there is higher
+workloads?
+
+\item How long it will take for a ML prediction to suggest a resource
+reconfiguration?  This latency should be quick enough to cover the
+variation of workloads.
+\end{itemize}
+
+The main experiment is to run some services at server side and have
+clients to generate dynamic workloads and see the overall throughput
+curve.  The expectation is to see the throughput can increase when
+workloads is high and decrease when the worloads is low.  This can
+answer the first and third questions.  We can also see the overall
+resource utilization to answer the second questions.

@@ -1,0 +1,138 @@
+% Sets options for different versions of a peer-reviewed paper. Cannot
+% be a LaTeX package because it must often be used _before_
+% \documentclass. Use as follows:
+%
+%   \def\paperversion{draft}
+%   \input{paperversions}
+%
+% In addition to 'draft', the following document versions are
+% supported: markup, local, submission, final, finaldraft, tr, trdraft
+%
+% markup: internal draft for paper markup
+% draft: internal draft with standard layout (comments shown, blinded if necessary)
+% local: version for local review (not blinded, warning re distribution)
+% submission: submission for review (blinded if necessary)
+% final: camera-ready (not blinded, no warning)
+% finaldraft: like final, but comments shown
+% web: version to post on a website. Like final, but with page
+%      numbers and possibly information about where paper was published.
+% tr: technical report
+% trdraft: technical report with comments shown
+%
+% The following \if conditions are defined appropriately depending on
+% which version is chosen:
+%
+\newif\ifsinglecolumn\singlecolumnfalse
+\newif\ifwidemargins\widemarginsfalse
+\newif\ifwarning\warningfalse
+\newif\ifshowcomments\showcommentsfalse
+\newif\ifblinded\blindedfalse
+\newif\ifreport\reportfalse
+\newif\ifcopyrightspace\copyrightspacefalse
+\newif\ifacknowledgments\acknowledgmentsfalse
+\newif\ifshowpagenumbers\showpagenumberstrue
+\newif\iffinalformat\finalformatfalse
+\newif\ifweb\webfalse
+
+% The condition \ifblinded is defined by the existence of the file
+% .blinded, unless overridden by the document version chosen.
+%
+\IfFileExists{.blinded}{\blindedtrue}
+
+\def\xxmarkup{0}
+\def\xxdraft{1}
+\def\xxlocal{2}
+\def\xxsubmission{3}
+\def\xxfinal{4}
+\def\xxtr{5}
+\def\xxtrdraft{6}
+\def\xxfinaldraft{7}
+\def\xxweb{8}
+\def\xxblindtr{9}
+
+\ifx\paperversion\xxxxundefined
+\PackageError{paperversions}{*** No valid document version was specified.
+Macro paperversions must be be defined as one of (markup, draft,
+local, submission, final, web, tr, trdraft)}
+\fi
+
+\def\xxversion{\csname xx\paperversion\endcsname}
+\newif\ifsawversion\sawversionfalse
+
+\ifcase\xxversion\relax
+%markup
+    \widemarginstrue
+    \singlecolumntrue
+    \warningtrue
+    \sawversiontrue
+\or %draft
+    \warningtrue
+    \showcommentstrue
+    \sawversiontrue
+\or %local
+    \warningtrue
+    \showcommentsfalse
+    \blindedfalse
+    \sawversiontrue
+    \acknowledgmentstrue
+\or %submission
+    \sawversiontrue
+\or %final
+    \blindedfalse
+    \sawversiontrue
+    \copyrightspacetrue
+    \acknowledgmentstrue
+    \showpagenumbersfalse
+    \finalformattrue
+\or %tr
+    \singlecolumntrue
+    \blindedfalse
+    \sawversiontrue
+    \reporttrue
+    \acknowledgmentstrue
+    \webtrue
+\or %trdraft
+    \blindedfalse
+    \singlecolumntrue
+    \showcommentstrue
+    \sawversiontrue
+    \reporttrue
+\or %finaldraft
+    \blindedfalse
+    \showcommentstrue
+    \copyrightspacetrue
+    \acknowledgmentstrue
+    \sawversiontrue
+    \finalformattrue
+\or %web
+    \blindedfalse
+    \sawversiontrue
+    \copyrightspacetrue
+    \acknowledgmentstrue
+    \finalformattrue
+    \webtrue
+\or %blindtr
+    \singlecolumntrue
+    \blindedtrue
+    \acknowledgmentsfalse
+    \sawversiontrue
+    \reporttrue
+    \webtrue
+\fi
+
+\ifsawversion
+\else
+    \typeout{*** Internal error: no valid document version processed! ***}
+\fi
+
+% Cleanup.
+\let\xxmarkup=\undefined
+\let\xxlocal=\undefined
+\let\xxsubmission=\undefined
+\let\xxfinal=\undefined
+\let\xxfinaldraft=\undefined
+\let\xxtr=\undefined
+\let\xxtrdraft=\undefined
+\let\xxweb=\undefined
+\let\xxblindtr=\undefined
+\let\xxversion=\undefined

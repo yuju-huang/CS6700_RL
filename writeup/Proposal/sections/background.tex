@@ -1,0 +1,99 @@
+In this section, we review prior work on resource disaggregation,
+resource reconfiguration, and OS reconfiguration, and contrast
+this with our proposed research.
+
+\subsection{Resource disaggregation}
+The concept of resource disaggregation is that instead of building
+servers by collecting all required hardware components within a
+physical box, different hardware components can be placed into
+multiple resource blades, communicating with each other via network
+switches (Figure~\ref{fig:archi}). Compared to the traditional
+monolithic architecture, a disaggregated architecture has the
+potential to improve
+resource utilization, supports hardware upgrade and scaling,
+and supports heterogeneous computing.  Commercial prototypes include
+Intel’s Rack Scale Architecture~\cite{Intel_RSA}, HP’s “The
+Machine”~\cite{HP_The_Machine}, Facebook’s Disaggregated
+Rack~\cite{FB_disaggregated_rack}, and IBM’s Composable
+System~\cite{chung2018towards}.  Academic proposals include
+dRedBox~\cite{katrinis2016rack}, Firebox\cite{asanovic2014firebox},
+and disaggregated memory blade~\cite{lim2009disaggregated}.
+
+Several systems have been built that leverage disaggregated memory
+to optimize memory-intensive applications, either by remote memory
+swapping~\cite{lagar2019software, al2020effectively, gu2017efficient}
+or by exposing a remote memory abstraction to
+applications~\cite{aguilera2018remote}.  LegoOS~\cite{shan2018legoos}
+proposes the \emph{splitkernel} architecture and implements an OS
+especially built for disaggregated hardware. Other work
+evaluates the networking aspect of achieving resource
+disaggregation\cite{abali2015disaggregated, gao2016network}.
+
+While these systems explore disaggregated resources, the
+operating systems themselves assume that, once booted, the
+collection of hardware resources available does not change.
+We propose to develop an OS where the set of hardware resources
+that it uses is highly fluid and governed by application demand
+rather than by hardware limitations.
+
+\subsection{Resource reconfiguration}
+In cloud computing, resource \emph{vertical scaling} (aka
+\emph{scale-up}) and resource overcommitment raise the need for
+resource reconfiguration.  Most prior research focuses on memory
+overcommitment and auto-scaling and use memory
+ballooning~\cite{waldspurger02} to adjust the memory accessible to
+VMs~\cite{salomie2013application, amit2014vswapper, hines2011applications,
+agmon2014ginseng, shaikh2015dynamic, molto2013elastic}. These
+approaches still have a limited amount of computing resources that
+are specified when a VM is booted. We propose to eliminate these
+limitations and achieve a high degree of resource reconfiguration.
+
+Similar to our approach are the Resource-as-a-Service cloud
+model~\cite{ben2012resource} and nonkernel~\cite{ben2013nonkernel},
+which also propose to build an OS that views computing resources
+in a fine-grained fashion.  However, these systems target traditional
+monolithic servers, while we believe that a disaggregated architecture
+would be a better target.
+
+
+\subsection{Reconfiguration policies}
+\cite{sedaghat2013virtual} describes various VM repacking
+policies that take either changes in workload or the
+total load as input and output a decision on whether to reconfigure,
+and if so, the new optimal resource distribution.
+For memory-intensive workloads, a study of cloud providers shows that
+auto-scaling of the memory resources can be accomplished by analyzing the
+applications' memory miss ratio curve (MRC) and modeling it as a
+hyperbola~\cite{novak2020auto}.
+
+Prior research on web applications~\cite{yazdanov2014lightweight}
+shows that fine-grained vertical scaling of multi-tiered web
+applications can be accomplished through online reinforcement learning
+models.  Additionally, with the recent development of machine
+learning models, prediction of the optimal amount of
+resources can also be attained by certain supervised deep learning
+models.  Since the input is a series of time-correlated data,
+recurrent neural networks can capture the important
+features~\cite{gers1999learning}.
+
+\cite{farokhi2016hybrid} suggests to use a control-theoretic
+approach to decide how to vertical scale resources in web-facing
+applications.
+They propose a hybrid between two specific approaches:
+the performance-based (PC) approach and capacity-based (CC) approach.
+PC directly optimizes application performance while CC focuses on
+optimizing resource utilization.  The paper shows that
+combining these two approaches can combine the benefits.
+
+\subsection{OS reconfiguration}
+Prior work on OS reconfiguration has focused on updating the
+policies or mechanisms of a deployed OS. The main purpose is to
+carry out application-specific optimizations, insert third-party
+modules, enable dynamic monitoring, or fix bugs on the
+fly~\cite{soules2003system, baumann2007reboots, baumann2005providing,
+chen2006live, chen2007polus}. Learned OS~\cite{zhang2019learned}
+proposes using machine learning to tune and build an OS. We propose
+that, in addition to policies and mechanisms, OS reconfiguration
+should also include the ability to reconfigure the computing resources
+an OS can use.  We are interested in both machine learning and more
+traditional heuristics to achieve better resource utilization.

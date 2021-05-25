@@ -1,0 +1,44 @@
+We are currently building a prototype platform to evaluate incarnations
+of a fluid OS. As depicted in Figure~\ref{fig:archi}, the main focus
+will be the fluid OS, the prediction model, and the interfaces.
+We also need a hypervisor underlying the VMs.
+
+\noindent \textbf{Hypervisor}. A suitable hypervisor for us to
+explore the possibility of a fluid OS will be one that can run on
+the disaggregated hardware and manage the disaggregated computing
+resources. We are currently exploring two options.  The first is
+based on GiantVM~\cite{zhang2020giantvm}, a distributed hypervisor
+that currently runs on monolithic servers and creates VMs using
+computing resources across multiple servers.  We are looking in
+extending GiantVM to support 1) running on
+disaggregated hardware and 2) provide dynamic resource allocation.
+The second option is to add virtualization support to
+LegoOS~\cite{shan2018legoos}, an operating system designed for
+disaggregated architecture.
+
+\noindent \textbf{Fluid OS}.  The main design has three parts:
+resource management, application interfaces, and interfaces to
+hypervisors. As the set of computing resources is continuously
+varying, we need to revisit resource management in conventional
+operating system design.  To quickly react to
+underlying resource changes, process schedulers, memory
+allocators, and so on should become more flexible.
+Application interfaces must be extended so application can
+leverage the disaggregated resources.
+For example, remote memory could be presented using the
+familiar file abstraction~\cite{aguilera2018remote}.
+As for the interface between a
+fluid OS and the underlying hypervisor, we believe the
+virtio model~\cite{jones2010virtio} is a good basis as it
+provides a simple and well-supported interface and hides onerous
+hardware details.
+
+\noindent \textbf{Prediction model}. The main duty of the prediction
+model is to forecast the optimal amount of computing resources that
+will be needed in the near future.  We will start with evaluating
+heuristics, followed by exploring machine learning
+with careful consideration of possible overheads.
+We realize that a prediction model might not be optimal
+as applications may be able to predict their behavior better,
+but we hope that it allows us to evaluate the benefits of fluid
+resource reconfiguration with legacy benchmarks.

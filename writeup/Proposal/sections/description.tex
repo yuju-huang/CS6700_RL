@@ -1,0 +1,32 @@
+Current trends suggest building datacenters according to a resource
+disaggregated architecture, where resources of the same type are
+grouped into a pool and each pool communicates with other pools
+using high performance network switches.  This approach transforms
+the computer abstraction from one with a fixed set of hardware
+resources into one where the set of resources can be changed
+on-demand, similar to the virtual resources within a process
+abstraction.  Consequently, the applications can now imagine
+they have roughly unlimited hardware resources to use.
+For example, the amount of CPU or memory one application can
+request is no longer limited within the server boxes.
+Instead, it can request way more memory or CPU from the resource pools.
+
+We argue that this new abstraction enables enumerous opportunity in
+adopting machine learning to solve resource management problems.
+Especially when the hardware resources at disposal are unlimited,
+the searching space of resource scheduling becomes extremely large.
+With the growing searching space, the traditional heuristic approach
+may no longer effective or efficient. This is, however, a good opportunity
+in exploring machine learning in solving the problem.
+
+This project proposes to use machine learning to predict the resource
+requirement for applications.  The machine learning model is trained
+by feeding system monitoring logs and validated by expected performance.
+For example, when CPU utilization is growing the prediction should tell
+the resource scheduler to allocate more CPUs.  And when the number of
+granted CPUs is more than what the application originally allocated,
+the performance should improve.  The idea can be applied to various
+hardware resources such as memory, I/O devices, and NIC.
+As shown in Figure~\ref{fig:archi}, we have proposed a software
+stack running on the disaggregated architecture.
+This project will focus on the prediction model.
