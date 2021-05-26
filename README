@@ -1,0 +1,31 @@
+This is the project that use reinforcement learning (DQN)
+to predict CPU usage for Xapian.
+
+The final implementation is under dqn folder.
+
+evn_xapian:
+ - Run tailbench container and start Xapian server
+ - Run Xapian client
+ - Use MessageQueue to talk with Xapian client to collect latency
+
+run.sh: train/retrain/predict model
+ - Determined workload file
+ - Determined lat_weights
+
+Train model
+    sudo ./run.sh train
+Retrain and predict model
+    sudo ./run.sh retrain MODEL_PATH
+    sudo ./run.sh predict MODEL_PATH
+    
+    Note that the real model path will be determine by the reward weighting
+    as specified in run.sh.
+
+parse_summary.sh
+ - Given a .log.parse file (cat .log | grep timestamp > .log.parse),
+   it returns the average cpu shares and QoS violation percent.
+
+plot.sh
+ - Determined workload file
+ - Given a .log.parse file, it plots the p99 latency, cpu shares,
+   and workload curve.
