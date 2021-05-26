@@ -18,8 +18,8 @@ from rl import Action
 tf.enable_eager_execution()
 
 UPDATE_TARGET_NET_FREQ = 5
-TRAINING_ACTION_INTERVAL = 0.2
-PREDICT_ACTION_INTERVAL = 0.2
+TRAINING_ACTION_INTERVAL = 0.3
+PREDICT_ACTION_INTERVAL = 0.3
 def evaluate_training_result(env, agent):
     """
     Evaluates the performance of the current DQN agent by using it to play a
@@ -74,7 +74,7 @@ class FinishAgent:
     #AcceptReward = -30000
     #FinishThreshold = 1
     AcceptLoss = 2
-    AcceptReward = 20
+    AcceptReward = 10
     FinishThreshold = 5
 
     def __init__(self):
@@ -151,6 +151,7 @@ def predict_model(out_model_path, workload_path, lat_weight, util_weight, p99_qo
         next_state, reward, done, _ = env.step(action)
         timestamp = time.perf_counter() - start
 
+        print("state=", state, ", action=", action, ", reward=", reward)
         states.append(next_state)
         timestamps.append(timestamp)
         actions.append(action)
@@ -182,11 +183,11 @@ if __name__ == "__main__":
     print("mode=", mode, ", model_path=", model_path, ", workload_path=", workload_path, \
           ", lat_weight=", lat_weight, ", util_weight=", util_weight, ", p99_qps=", p99_qps)
 
-    max_episodes = 50
+    max_episodes = 30
     if mode == "train":
-        train_model(50, model_path, workload_path, lat_weight, util_weight, p99_qps)
+        train_model(max_episodes, model_path, workload_path, lat_weight, util_weight, p99_qps)
     elif mode == "retrain":
-        retrain_model(50, model_path, workload_path, lat_weight, util_weight, p99_qps)
+        retrain_model(max_episodes, model_path, workload_path, lat_weight, util_weight, p99_qps)
     elif mode == "predict":
         predict_model(model_path, workload_path, lat_weight, util_weight, p99_qps)
         pass

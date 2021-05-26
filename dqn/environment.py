@@ -9,16 +9,9 @@ class Environment:
     def __init__(self, actor):
         self.actor = actor
 
-        # Cache states from the previous action to prevent workload finishes
-        # without reporting states.
-        self.state_before_done = None
-        self.reward_before_done = None
-
     def reset(self):
         time.sleep(2)
         self.start()
-        self.state_before_done = None
-        self.reward_before_done = None
         state = self.getState()
         while state is None:
             state = self.getState()
@@ -44,23 +37,7 @@ class Environment:
         return state.np_vector()
 
     def step(self, action):
-        # Do action
-        self.actor.doAction(action)
-
-        # Collect new state
-        state = self.getState()
-        if state is None:
-            return self.state_before_done, self.reward_before_done, True, None
-
-        # Calculate reward using performance QoS and resource utlization
-        reward = self.reward(state)
-
-        self.state_before_done = state
-        self.reward_before_done = reward
-        return state, reward, False, None
-
-    def reward(self, state):
-        return self.actor.reward(state)
+        return self.actor.step(action)
 
 def dump(reward, state):
     print("state=" + str(state))

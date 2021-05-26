@@ -35,6 +35,11 @@ class Xapian:
         self.num_cpus = os.cpu_count()
         self.workload_file = workload_path
 
+        # Cache states from the previous action to prevent workload finishes
+        # without reporting states.
+        self.state_before_done = None
+        self.reward_before_done = None
+
         self.p99_qos = p99_qos 
         self.lat_weight = lat_weight
         self.util_weight = util_weight
@@ -45,6 +50,9 @@ class Xapian:
         print("self.lat_unit=", self.lat_unit, ", self.util_unit=", self.util_unit)
 
     def start(self):
+        print("Xapian start")
+        self.state_before_done = None
+        self.reward_before_done = None
         self.startServer()
         self.startClient()
 
@@ -81,25 +89,53 @@ class Xapian:
         assert (len(lats) == self.num_lats)
         return State(cpuUtil, lats)
 
+    def step(self, action):
+        # Do action
+        succ = self.doAction(action)
+        # This tries to clear the latency stats
+        garbage = self.__get_lats()
+        if garbage is None:
+            return self.state_before_done, self.reward_before_done, True, None
+
+        time.sleep(0.2)
+        # Collect new state
+        state = self.getState()
+        if state is None:
+            return self.state_before_done, self.reward_before_done, True, None
+
+        # Calculate reward using performance QoS and resource utlization
+        reward = self.reward(state, succ)
+
+        self.state_before_done = state
+        self.reward_before_done = reward
+        return state, reward, False, None
+
     def doAction(self, action):
         if (action == Action.NONE):
-             return
+             return True
 
         if (action == Action.SCALE_UP) and (self.cpu_share < self.max_cpu_share):
             self.cpu_share *= self.scale_factor
         elif (action == Action.SCALE_DOWN) and (self.cpu_share > self.min_cpu_share):
             self.cpu_share /= self.scale_factor
         else:
-            return
+            # Return False to indicate the action fails. This pushes the model to do Action.NONE.
+            return False
         DockerEngine.setCPUShare(self.server_name, self.cpu_share)
-        time.sleep(0.1)
+        return True
 
-    def reward(self, state):
+    def reward(self, state, action_succ):
         assert state is not None
 
-        lat_reward = 1
+        if action_succ == False:
+            return -0.2
+
+        lat_reward = 0
         if (state.p99_lat() > self.p99_qos):
-            lat_reward -= ((state.p99_lat() - self.p99_qos) / self.p99_qos) * self.lat_unit
+            lat_reward -= ((state.p99_lat() - self.p99_qos) / self.p99_qos) * 0.1
+            #lat_reward -= ((state.p99_lat() - self.p99_qos) / self.p99_qos) * self.lat_unit
+        else:
+            lat_reward = 1
 
         #util_reward = 1
         #util_reward -= (state.cpu_util - Xapian.min_cpu_share) * self.util_unit

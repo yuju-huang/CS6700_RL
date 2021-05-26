@@ -51,13 +51,14 @@ echo "Write log to "$log_file
 rm $log_file
 date > $log_file
 sudo ipcrm --all=msg
-sudo python3 train.py $mode $model_path $WORKLOAD_ROOT/$workload $lat_weight $util_weight $p99_qps >> $log_file 2>&1
+#echo "sudo python3 train.py $mode $model_path $WORKLOAD_ROOT/$workload $lat_weight $util_weight $p99_qps #>> $log_file 2>&1"
+sudo python3 train.py $mode $model_path $WORKLOAD_ROOT/$workload $lat_weight $util_weight $p99_qps $log_file #2>&1
 if [[ $mode == "predict" ]]; then
     cat $log_file | grep timestamp > ${log_file}.parse
 fi
 }
 
-lat_weights=(2 5 8)
+lat_weights=(8)
 #lat_weights=(1 2 5 8 9)
 #lat_weights=(2 5 8)
 p99_qps=10
